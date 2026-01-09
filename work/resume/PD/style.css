@@ -1,0 +1,356 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+:root {
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --accent-color: #666666;
+    --font-main: 'Helvetica Neue', Helvetica, 'Pretendard', Arial, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-main);
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    margin-bottom: 120px;
+    padding-top: 60px;
+    min-height: 600px;
+    /* Ensure space for canvas */
+}
+
+#particle-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: auto;
+    /* Allow mouse interaction */
+}
+
+.visual-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.main-title {
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.main-title .line {
+    font-size: 160px;
+    /* Requested size */
+    display: block;
+}
+
+.sub-title {
+    font-size: 40px;
+    /* Doubled from 20px */
+    font-weight: 900;
+    /* Thicker */
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin-top: 40px;
+    color: var(--text-color);
+    letter-spacing: -0.03em;
+    /* Tightened */
+    line-height: 0.95;
+    /* Relaxed slightly from 0.85 */
+    margin-left: 72px;
+    margin-right: 72px;
+    /* Desktop Right Margin */
+    /* Desktop Left Margin */
+}
+
+/* Content Sections */
+/* Content Sections */
+.content-section {
+    margin-bottom: 100px;
+    text-align: left;
+    margin-left: 72px;
+    margin-right: 72px;
+    /* Desktop Right Margin */
+    /* Desktop Left Margin */
+}
+
+.section-title {
+    font-size: 16px;
+    /* Reduced from 18px */
+    font-weight: 700;
+    margin-bottom: 40px;
+    letter-spacing: 0.05em;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    border-top: 1px solid #333;
+    padding-top: 60px;
+    /* Increased from 40px */
+}
+
+/* Job List (Top summary) */
+.job-list {
+    margin-bottom: 60px;
+}
+
+.job-item {
+    margin-bottom: 15px;
+    font-size: 20px;
+    /* Reduced from 24px */
+    font-weight: 300;
+}
+
+.job-item .role {
+    font-weight: 500;
+    margin-right: 10px;
+}
+
+.job-item .company {
+    color: #999;
+}
+
+/* History List (Detailed) */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    align-items: baseline;
+    font-size: 16px;
+    /* Reduced from 18px */
+    border-bottom: 1px solid #222;
+    padding-bottom: 20px;
+    text-align: left;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item .year {
+    width: 120px;
+    flex-shrink: 0;
+    font-weight: 700;
+    margin-right: 20px;
+    margin-left: 0;
+    text-align: left;
+    order: 0;
+}
+
+.history-item .detail {
+    font-weight: 300;
+    color: #ccc;
+    order: 1;
+}
+
+.history-item .detail strong {
+    color: #fff;
+    font-weight: 500;
+}
+
+/* Awards & Projects List */
+.text-list {
+    list-style: none;
+    font-size: 16px;
+    /* Reduced from 18px */
+    font-weight: 300;
+    text-align: left;
+}
+
+.text-list li {
+    margin-bottom: 20px;
+    line-height: 1.6;
+    padding-left: 0;
+}
+
+.text-list .year {
+    font-weight: 700;
+    margin-right: 15px;
+    margin-left: 0;
+    display: inline-block;
+    min-width: 60px;
+}
+
+.project-list li {
+    margin-bottom: 40px;
+}
+
+.project-list strong {
+    display: block;
+    font-size: 20px;
+    /* Reduced from 22px */
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.project-list p {
+    color: #999;
+    font-size: 15px;
+    /* Reduced from 16px */
+    margin-left: 0;
+}
+
+.email-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 24px;
+    /* Reduced from 32px */
+    font-weight: 700;
+    /* Reduced from 900 */
+    /* Thicker font */
+    /* Thicker font */
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    letter-spacing: -0.03em;
+    /* Tightened */
+    line-height: 0.95;
+    /* Relaxed slightly from 0.85 */
+    transition: color 0.2s;
+    margin-left: 72px;
+    margin-right: 72px;
+    /* Desktop Right Margin */
+    /* Desktop Left Margin */
+}
+
+.email-link:hover {
+    color: var(--text-color);
+}
+
+footer {
+    margin-top: 100px;
+    padding-top: 60px;
+    /* Increased to 60px */
+    border-top: 1px solid #333;
+    font-size: 14px;
+    color: #555;
+    text-align: center;
+    margin-left: 72px;
+    margin-right: 72px;
+    /* Desktop Right Margin */
+    padding-bottom: 60px;
+}
+
+.credit {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .main-title .line {
+        font-size: 12vw;
+        /* Scale down on smaller desktops/tablets */
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0;
+        /* Removed padding */
+        overflow-x: hidden;
+    }
+
+    /* Reset desktop visual shifts & Set Left Align */
+    .content-section,
+    .sub-title,
+    .email-link,
+    footer {
+        transform: none;
+        margin-right: 0;
+        margin-left: 0;
+        /* Mobile Left Margin Reset */
+        padding-left: 24px;
+        /* Mobile Left Padding */
+        padding-right: 24px;
+        /* Mobile Right Padding */
+        text-align: left;
+        /* Switch to Left Align for Mobile */
+    }
+
+    .main-title {
+        align-items: flex-start;
+        /* Align header source text left */
+    }
+
+    .main-title .line {
+        font-size: 15vw;
+    }
+
+    .history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        /* Align items left */
+        text-align: left;
+    }
+
+    .history-item .year {
+        margin-bottom: 5px;
+        margin-left: 0;
+        margin-right: 0;
+        order: 1;
+        text-align: left;
+    }
+
+    .history-item .detail {
+        order: 2;
+        text-align: left;
+    }
+
+    .text-list,
+    .project-list p {
+        text-align: left;
+    }
+
+    /* Stack Awards Year on Top for Mobile */
+    .text-list .year {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .sub-title {
+        margin-top: 120px;
+        /* Increased top margin for mobile to clear text */
+        font-size: 24px;
+        /* Mobile override: restore smaller size */
+    }
+
+    .email-link {
+        font-size: 18px;
+        /* Mobile override: restore smaller size */
+    }
+}
