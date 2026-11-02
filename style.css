@@ -256,6 +256,23 @@ body {
     outline: none;
 }
 
+/* Text-style tag link: yellow, no underline; hover keeps the color and only adds an underline */
+.project-tag-text {
+    display: inline-block;
+    color: #ffdc00;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.project-tag-text:hover,
+.project-tag-text:focus-visible {
+    color: #ffdc00;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .email-link {
     display: inline-block;
     margin-top: 10px;
