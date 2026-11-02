@@ -1,15 +1,56 @@
+/* Interop web font (self-hosted, SIL OFL 1.1 - see fonts/OFL-Interop.txt). Heaviest weight is 800. */
+@font-face {
+    font-family: 'Interop';
+    src: url('fonts/Interop-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Interop';
+    src: url('fonts/Interop-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Interop';
+    src: url('fonts/Interop-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Interop';
+    src: url('fonts/Interop-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Interop';
+    src: url('fonts/Interop-ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg-color: #000000;
     --text-color: #ffffff;
     --accent-color: #666666;
-    /* Body: Pretendard for both English and Korean */
-    --font-main: 'Pretendard', Arial, sans-serif;
-    /* Top hero area: Pretendard by default, Helvetica (English) where Helvetica Neue is installed */
-    --font-hero: 'Pretendard', Arial, sans-serif;
+    /* Body: Interop for both English and Korean */
+    --font-main: 'Interop', Arial, sans-serif;
+    /* Top hero area: Interop by default, Helvetica (English) where Helvetica Neue is installed */
+    --font-hero: 'Interop', Arial, sans-serif;
 }
 
 html.has-helvetica {
-    --font-hero: 'Helvetica Neue', Helvetica, 'Pretendard', Arial, sans-serif;
+    --font-hero: 'Helvetica Neue', Helvetica, 'Interop', Arial, sans-serif;
 }
 
 * {

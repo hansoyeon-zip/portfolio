@@ -105,10 +105,10 @@ function monitorPerformance(rawMs) {
 }
 
 // Hero title font:
-//  - Helvetica Neue installed (typically Mac/iOS): "Helvetica Neue", Helvetica, "Pretendard", Arial, sans-serif
-//  - Not installed (typically Windows/Android): Pretendard first
+//  - Helvetica Neue installed (typically Mac/iOS): "Helvetica Neue", Helvetica, "Interop", Arial, sans-serif
+//  - Not installed (typically Windows/Android): Interop first
 // We detect "Helvetica Neue" itself because Windows silently maps plain "Helvetica" to Arial,
-// which would otherwise stop Pretendard from being used there.
+// which would otherwise stop Interop from being used there.
 function isFontInstalled(name) {
     const c = document.createElement('canvas').getContext('2d');
     const text = 'mmmmmmmmmmlli WwQ0123456789';
@@ -121,8 +121,8 @@ function isFontInstalled(name) {
 }
 const HAS_HELVETICA = isFontInstalled('Helvetica Neue');
 const HERO_FONT_FACE = HAS_HELVETICA
-    ? `"Helvetica Neue", Helvetica, "Pretendard", Arial, sans-serif`
-    : `"Pretendard", Arial, sans-serif`;
+    ? `"Helvetica Neue", Helvetica, "Interop", Arial, sans-serif`
+    : `"Interop", Arial, sans-serif`;
 
 // Ambient Particle (Background Dust)
 class AmbientParticle {
@@ -580,11 +580,12 @@ function animate(timestamp) {
 }
 
 window.onload = function () {
-    // Wait for Pretendard when it will be used so text is sampled with the right glyphs; never block more than 2.5s.
+    // Wait for Interop when it will be used so text is sampled with the right glyphs; never block more than 5s
+    // (the font files are ~1MB each because they contain the full Hangul set).
     const fontLoad = HAS_HELVETICA
         ? Promise.resolve()
-        : document.fonts.load('900 144px "Pretendard"').catch(function () { });
-    const timeout = new Promise(function (resolve) { setTimeout(resolve, 2500); });
+        : document.fonts.load('900 144px "Interop"').catch(function () { });
+    const timeout = new Promise(function (resolve) { setTimeout(resolve, 5000); });
     Promise.race([fontLoad, timeout])
         .then(function () { return document.fonts.ready; })
         .then(function () {
