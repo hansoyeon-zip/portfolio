@@ -255,6 +255,7 @@ body {
     content: "\FF1E";
     content: "\FF1E" / "";
     font-size: 9px;
+    font-weight: 700;
     line-height: 1;
 }
 
