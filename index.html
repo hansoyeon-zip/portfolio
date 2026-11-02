@@ -7,7 +7,23 @@
     <title>Creative eXperience Design Director - Han Soyeon</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-    <link rel="stylesheet" href="style.css?v=20261102m">
+    <script>
+        // Detect an installed "Helvetica Neue" (plain "Helvetica" is silently mapped to Arial on Windows)
+        (function () {
+            try {
+                var c = document.createElement('canvas').getContext('2d');
+                var t = 'mmmmmmmmmmlli WwQ0123456789';
+                var has = ['monospace', 'serif', 'sans-serif'].some(function (b) {
+                    c.font = '72px ' + b;
+                    var w = c.measureText(t).width;
+                    c.font = '72px "Helvetica Neue", ' + b;
+                    return c.measureText(t).width !== w;
+                });
+                if (has) document.documentElement.classList.add('has-helvetica');
+            } catch (e) { }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css?v=20261102n">
 </head>
 
 <body>

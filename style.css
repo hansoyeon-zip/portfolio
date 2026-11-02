@@ -1,10 +1,15 @@
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-
 :root {
     --bg-color: #000000;
     --text-color: #ffffff;
     --accent-color: #666666;
-    --font-main: 'Helvetica Neue', Helvetica, 'Pretendard', Arial, sans-serif;
+    /* Body: Pretendard for both English and Korean */
+    --font-main: 'Pretendard', Arial, sans-serif;
+    /* Top hero area: Pretendard by default, Helvetica (English) where Helvetica Neue is installed */
+    --font-hero: 'Pretendard', Arial, sans-serif;
+}
+
+html.has-helvetica {
+    --font-hero: 'Helvetica Neue', Helvetica, 'Pretendard', Arial, sans-serif;
 }
 
 * {
@@ -59,6 +64,7 @@ body {
 }
 
 .main-title {
+    font-family: var(--font-hero);
     font-weight: 700;
     line-height: 0.9;
     letter-spacing: -0.04em;
@@ -80,7 +86,7 @@ body {
     /* Doubled from 20px */
     font-weight: 900;
     /* Thicker */
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--font-hero);
     margin-top: 40px;
     color: var(--text-color);
     letter-spacing: -0.03em;
@@ -278,7 +284,7 @@ body {
     /* Reduced from 900 */
     /* Thicker font */
     /* Thicker font */
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--font-hero);
     letter-spacing: -0.03em;
     /* Tightened */
     line-height: 0.95;
