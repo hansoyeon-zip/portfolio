@@ -187,8 +187,8 @@ class Particle {
         const isMobile = window.innerWidth < 768;
         // Low-DPR screens (typical Windows, dpr<2): bigger particles so neighbours overlap and the glyph looks solid
         const lowDpr = !isMobile && (window.devicePixelRatio || 1) < 2;
-        const minSize = isMobile ? 0.6 : (lowDpr ? 1.2 : 1.0);
-        const maxSize = isMobile ? 1.0 : (lowDpr ? 1.8 : 1.6);
+        const minSize = isMobile ? 0.6 : (lowDpr ? 1.4 : 1.0);
+        const maxSize = isMobile ? 1.0 : (lowDpr ? 2.0 : 1.6);
         this.size = Math.random() * (maxSize - minSize) + minSize;
         this.baseAlpha = 1.0;
         this.density = (Math.random() * 10) + 1;
@@ -403,6 +403,21 @@ function updateVirtualMice(dt) {
     return virtualMice;
 }
 
+// Round particles drawn from one pre-rendered circle sprite. drawImage of the same small image is
+// batched by the browser, so this is round like arc() but far cheaper than thousands of arc paths.
+const SPRITE_SIZE = 16;
+const circleSprite = (function () {
+    const c = document.createElement('canvas');
+    c.width = SPRITE_SIZE;
+    c.height = SPRITE_SIZE;
+    const sc = c.getContext('2d');
+    sc.fillStyle = '#fff';
+    sc.beginPath();
+    sc.arc(SPRITE_SIZE / 2, SPRITE_SIZE / 2, SPRITE_SIZE / 2, 0, Math.PI * 2);
+    sc.fill();
+    return c;
+})();
+
 function animate(timestamp) {
     // Delta time normalised to 60fps (1.0 = 16.67ms). Keeps motion speed the same on slow/fast machines.
     if (timestamp === undefined) timestamp = performance.now();
@@ -437,25 +452,24 @@ function animate(timestamp) {
     for (let i = 0; i < ambientParticlesArray.length; i++) {
         ambientParticlesArray[i].update(activeRepulsors, dt);
     }
-    ctx.fillStyle = '#fff';
     for (let k = 0; k < AMBIENT_LEVELS; k++) {
         ctx.globalAlpha = 0.1 + k * 0.12;
         for (let i = 0; i < ambientParticlesArray.length; i++) {
             const p = ambientParticlesArray[i];
             if (p.level !== k) continue;
-            const s = p.size * 0.886;
-            ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
+            const s = p.size;
+            ctx.drawImage(circleSprite, p.x - s, p.y - s, s * 2, s * 2);
         }
     }
     ctx.globalAlpha = 1;
 
-    // Text particles: single fillStyle + fillRect (far cheaper than per-particle arc paths)
+    // Text particles: round sprite per particle
     const frictionDt = Math.pow(0.92, dt);
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
         p.update(activeRepulsors, dt, frictionDt);
-        const s = p.size * 0.886; // half-side of a square with the same area as a circle of radius p.size
-        ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
+        const s = p.size;
+        ctx.drawImage(circleSprite, p.x - s, p.y - s, s * 2, s * 2);
     }
 
     requestAnimationFrame(animate);
