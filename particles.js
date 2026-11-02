@@ -76,11 +76,15 @@ let perfAccum = 0;
 let perfFrames = 0;
 let perfCooldown = 60; // frames to ignore after start / after each quality drop
 
-function thinParticles() {
-    // Keep ~60% of text particles (random, so the shape stays even) and enlarge slightly to preserve look
-    particlesArray = particlesArray.filter(() => Math.random() < 0.6);
-    for (let i = 0; i < particlesArray.length; i++) particlesArray[i].size *= 1.1;
-    ambientParticlesArray.length = Math.floor(ambientParticlesArray.length * 0.7);
+// Quality steps (never wipe out the title): dust is reduced first, text particles only lightly
+// at the last steps, and survivors are enlarged so the glyphs stay solid.
+function applyQualityStep(level) {
+    if (level <= 2) {
+        ambientParticlesArray.length = Math.floor(ambientParticlesArray.length * 0.5);
+    } else {
+        particlesArray = particlesArray.filter(() => Math.random() < 0.8);
+        for (let i = 0; i < particlesArray.length; i++) particlesArray[i].size *= 1.12;
+    }
 }
 
 function monitorPerformance(rawMs) {
@@ -92,9 +96,9 @@ function monitorPerformance(rawMs) {
         const avg = perfAccum / perfFrames;
         perfAccum = 0;
         perfFrames = 0;
-        if (avg > 22 && qualityLevel < 4) { // below ~45fps
+        if (avg > 25 && qualityLevel < 4) { // below ~40fps
             qualityLevel++;
-            thinParticles();
+            applyQualityStep(qualityLevel);
             perfCooldown = 45;
         }
     }
@@ -181,8 +185,10 @@ class Particle {
         this.targetX = x;
         this.targetY = y;
         const isMobile = window.innerWidth < 768;
-        const minSize = isMobile ? 0.6 : 1.0;
-        const maxSize = isMobile ? 1.0 : 1.6;
+        // Low-DPR screens (typical Windows, dpr<2): bigger particles so neighbours overlap and the glyph looks solid
+        const lowDpr = !isMobile && (window.devicePixelRatio || 1) < 2;
+        const minSize = isMobile ? 0.6 : (lowDpr ? 1.2 : 1.0);
+        const maxSize = isMobile ? 1.0 : (lowDpr ? 1.8 : 1.6);
         this.size = Math.random() * (maxSize - minSize) + minSize;
         this.baseAlpha = 1.0;
         this.density = (Math.random() * 10) + 1;
@@ -310,8 +316,8 @@ function init() {
 
     const textCoordinates = octx.getImageData(0, 0, off.width, off.height);
     // Retina (dpr>=2): unchanged 2 device px (=1 css px at dpr 2).
-    // Low DPR: 2.4 samples at 2x scale = 1.2 css px spacing (dense, but still light enough to run smoothly).
-    const gap = dpr >= 2 ? 2 : 2.4;
+    // Low DPR: 3 samples at 2x scale = 1.5 css px spacing; particles are enlarged (see Particle) so they overlap.
+    const gap = dpr >= 2 ? 2 : 3;
     const texW = textCoordinates.width;
     const texH = textCoordinates.height;
     const texData = textCoordinates.data;
@@ -327,7 +333,7 @@ function init() {
     }
 
     // Re-apply the quality reduction already learned (e.g. after a window resize)
-    for (let l = 0; l < qualityLevel; l++) thinParticles();
+    for (let l = 1; l <= qualityLevel; l++) applyQualityStep(l);
 
     const sourceTitle = document.getElementById('main-title-source');
     if (sourceTitle) {
