@@ -244,10 +244,13 @@ function init() {
     // Sample text pixels on a SEPARATE offscreen canvas. Calling getImageData on the visible
     // canvas makes Chrome (esp. on Windows) fall back to slow CPU rendering for every frame.
     const off = document.createElement('canvas');
-    off.width = canvas.width;
-    off.height = canvas.height;
+    // Sample at >= 2x resolution so low-DPR screens (typical Windows, dpr=1) get the same
+    // fine particle spacing as a retina Mac instead of a coarse 2px grid.
+    const sampleScale = Math.max(dpr, 2);
+    off.width = Math.floor(clientWidth * sampleScale);
+    off.height = Math.floor(clientHeight * sampleScale);
     const octx = off.getContext('2d', { willReadFrequently: true });
-    octx.scale(dpr, dpr);
+    octx.scale(sampleScale, sampleScale);
 
     octx.fillStyle = 'white';
     const isMobile = window.innerWidth < 768;
@@ -278,14 +281,19 @@ function init() {
     });
 
     const textCoordinates = octx.getImageData(0, 0, off.width, off.height);
-    const gap = 2;
+    // Retina (dpr>=2): unchanged 2 device px (=1 css px at dpr 2).
+    // Low DPR: 2.4 samples at 2x scale = 1.2 css px spacing (dense, but still light enough to run smoothly).
+    const gap = dpr >= 2 ? 2 : 2.4;
+    const texW = textCoordinates.width;
+    const texH = textCoordinates.height;
+    const texData = textCoordinates.data;
 
-    for (let y = 0, y2 = textCoordinates.height; y < y2; y += gap) {
-        for (let x = 0, x2 = textCoordinates.width; x < x2; x += gap) {
-            if (textCoordinates.data[(y * 4 * textCoordinates.width) + (x * 4) + 3] > 128) {
-                let logicalX = x / dpr;
-                let logicalY = y / dpr;
-                particlesArray.push(new Particle(logicalX, logicalY));
+    for (let y = 0; y < texH; y += gap) {
+        const iy = Math.floor(y);
+        for (let x = 0; x < texW; x += gap) {
+            const ix = Math.floor(x);
+            if (texData[(iy * 4 * texW) + (ix * 4) + 3] > 128) {
+                particlesArray.push(new Particle(x / sampleScale, y / sampleScale));
             }
         }
     }
