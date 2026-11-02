@@ -20,8 +20,11 @@ let virtualMice = [
 ];
 
 // Handle window resize and mouse movement
+let resizeTimer = null;
 window.addEventListener('resize', function () {
-    init();
+    // Debounce: re-sampling text on every resize event is expensive
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(init, 150);
 });
 
 window.addEventListener('mousemove', function (event) {
@@ -65,6 +68,38 @@ let viewH = 0;
 let lastFrameTime = null;
 const MAX_DT = 4; // clamp so tab-switch / long stalls don't cause huge jumps
 
+// Adaptive quality: if the real frame rate is low (e.g. weak GPU / software canvas),
+// thin out particles automatically until the animation runs smoothly.
+const AMBIENT_LEVELS = 5;
+let qualityLevel = 0;
+let perfAccum = 0;
+let perfFrames = 0;
+let perfCooldown = 60; // frames to ignore after start / after each quality drop
+
+function thinParticles() {
+    // Keep ~60% of text particles (random, so the shape stays even) and enlarge slightly to preserve look
+    particlesArray = particlesArray.filter(() => Math.random() < 0.6);
+    for (let i = 0; i < particlesArray.length; i++) particlesArray[i].size *= 1.1;
+    ambientParticlesArray.length = Math.floor(ambientParticlesArray.length * 0.7);
+}
+
+function monitorPerformance(rawMs) {
+    if (rawMs > 200) return; // ignore tab-switch stalls
+    if (perfCooldown > 0) { perfCooldown--; return; }
+    perfAccum += rawMs;
+    perfFrames++;
+    if (perfFrames >= 45) {
+        const avg = perfAccum / perfFrames;
+        perfAccum = 0;
+        perfFrames = 0;
+        if (avg > 22 && qualityLevel < 4) { // below ~45fps
+            qualityLevel++;
+            thinParticles();
+            perfCooldown = 45;
+        }
+    }
+}
+
 // Ambient Particle (Background Dust)
 class AmbientParticle {
     constructor() {
@@ -77,10 +112,11 @@ class AmbientParticle {
         const minSize = 1.0;
         const maxSize = 4.0;
         this.size = minSize + (Math.pow(Math.random(), 15) * (maxSize - minSize));
-        const alpha = Math.random() * 0.5 + 0.1;
+        const level = Math.floor(Math.random() * AMBIENT_LEVELS);
+        this.level = level;
         this.speedX = (Math.random() * 0.5) - 0.25;
         this.speedY = (Math.random() * 0.5) - 0.25;
-        this.color = `rgba(255, 255, 255, ${alpha})`;
+        this.color = `rgba(255, 255, 255, ${0.1 + level * 0.12})`;
     }
     update(repulsors, dt) {
         this.x += this.speedX * dt;
@@ -205,7 +241,15 @@ function init() {
         ambientParticlesArray.push(new AmbientParticle());
     }
 
-    ctx.fillStyle = 'white';
+    // Sample text pixels on a SEPARATE offscreen canvas. Calling getImageData on the visible
+    // canvas makes Chrome (esp. on Windows) fall back to slow CPU rendering for every frame.
+    const off = document.createElement('canvas');
+    off.width = canvas.width;
+    off.height = canvas.height;
+    const octx = off.getContext('2d', { willReadFrequently: true });
+    octx.scale(dpr, dpr);
+
+    octx.fillStyle = 'white';
     const isMobile = window.innerWidth < 768;
     let fontSize = 144;
     let align = 'left';
@@ -223,17 +267,17 @@ function init() {
     }
 
     const lineHeight = fontSize * lineHeightMultiplier;
-    ctx.font = `900 ${Math.floor(fontSize)}px "Helvetica Neue Black", "Helvetica Neue", "Arial Black", sans-serif`;
-    ctx.textAlign = align;
-    ctx.textBaseline = 'top';
+    octx.font = `900 ${Math.floor(fontSize)}px "Helvetica Neue Black", "Helvetica Neue", "Arial Black", sans-serif`;
+    octx.textAlign = align;
+    octx.textBaseline = 'top';
 
     const lines = ["Creative", "eXperience", "Design", "Director"];
 
     lines.forEach((line, index) => {
-        ctx.fillText(line, startX, startY + (index * lineHeight));
+        octx.fillText(line, startX, startY + (index * lineHeight));
     });
 
-    const textCoordinates = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const textCoordinates = octx.getImageData(0, 0, off.width, off.height);
     const gap = 2;
 
     for (let y = 0, y2 = textCoordinates.height; y < y2; y += gap) {
@@ -245,6 +289,9 @@ function init() {
             }
         }
     }
+
+    // Re-apply the quality reduction already learned (e.g. after a window resize)
+    for (let l = 0; l < qualityLevel; l++) thinParticles();
 
     const sourceTitle = document.getElementById('main-title-source');
     if (sourceTitle) {
@@ -317,8 +364,10 @@ function updateVirtualMice(dt) {
 function animate(timestamp) {
     // Delta time normalised to 60fps (1.0 = 16.67ms). Keeps motion speed the same on slow/fast machines.
     if (timestamp === undefined) timestamp = performance.now();
-    let dt = lastFrameTime === null ? 1 : (timestamp - lastFrameTime) / (1000 / 60);
+    const rawMs = lastFrameTime === null ? 16.7 : (timestamp - lastFrameTime);
+    let dt = lastFrameTime === null ? 1 : rawMs / (1000 / 60);
     lastFrameTime = timestamp;
+    monitorPerformance(rawMs);
     if (dt > MAX_DT) dt = MAX_DT;
     if (dt < 0.1) dt = 0.1;
 
@@ -342,18 +391,24 @@ function animate(timestamp) {
         }
     }
 
+    // Ambient dust: update, then draw batched by opacity level (few state changes, no color-string parsing)
     for (let i = 0; i < ambientParticlesArray.length; i++) {
-        const p = ambientParticlesArray[i];
-        p.update(activeRepulsors, dt);
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        ambientParticlesArray[i].update(activeRepulsors, dt);
     }
+    ctx.fillStyle = '#fff';
+    for (let k = 0; k < AMBIENT_LEVELS; k++) {
+        ctx.globalAlpha = 0.1 + k * 0.12;
+        for (let i = 0; i < ambientParticlesArray.length; i++) {
+            const p = ambientParticlesArray[i];
+            if (p.level !== k) continue;
+            const s = p.size * 0.886;
+            ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
+        }
+    }
+    ctx.globalAlpha = 1;
 
     // Text particles: single fillStyle + fillRect (far cheaper than per-particle arc paths)
     const frictionDt = Math.pow(0.92, dt);
-    ctx.fillStyle = '#fff';
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
         p.update(activeRepulsors, dt, frictionDt);
