@@ -59,6 +59,11 @@ html.has-helvetica {
     box-sizing: border-box;
 }
 
+/* Never show a horizontal scrollbar (e.g. Windows classic scrollbar width / wider fallback fonts) */
+html {
+    overflow-x: hidden;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
