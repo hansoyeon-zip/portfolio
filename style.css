@@ -199,7 +199,7 @@ body {
     justify-content: flex-start;
     align-items: baseline;
     align-items: baseline;
-    font-size: 20px;
+    font-size: 16px;
     /* Reduced from 18px */
     border-bottom: 1px solid #222;
     padding-bottom: 20px;
@@ -234,7 +234,7 @@ body {
 /* Awards & Projects List */
 .text-list {
     list-style: none;
-    font-size: 20px;
+    font-size: 16px;
     /* Reduced from 18px */
     font-weight: 300;
     text-align: left;
