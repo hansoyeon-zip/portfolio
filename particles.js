@@ -509,23 +509,28 @@ function drawPixelBuffer() {
     ctx.putImageData(imgData, 0, 0);
 }
 
-// Sprite renderer (high-DPR screens such as retina Mac)
+// Arc renderer (high-DPR screens such as retina Mac): the original round-dot drawing, minus the
+// per-particle color-string allocation. drawImage per particle was slower here because retina
+// screens carry several times more particles.
 function drawSprites() {
+    ctx.fillStyle = '#fff';
     for (let k = 0; k < AMBIENT_LEVELS; k++) {
         ctx.globalAlpha = 0.1 + k * 0.12;
         for (let i = 0; i < ambientParticlesArray.length; i++) {
             const p = ambientParticlesArray[i];
             if (p.level !== k) continue;
-            const sp = getSprite(p.size);
-            ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
     ctx.globalAlpha = 1;
 
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
-        const sp = getSprite(p.size);
-        ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
