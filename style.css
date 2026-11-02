@@ -127,6 +127,12 @@ body {
     display: block;
 }
 
+/* The particle canvas draws the title; hide the plain source text (but keep its layout space)
+   so it does not flash before the particles are ready. */
+html.js:not(.particles-ready) .main-title {
+    opacity: 0;
+}
+
 .sub-title {
     font-size: 40px;
     /* Doubled from 20px */

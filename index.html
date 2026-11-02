@@ -23,7 +23,18 @@
             } catch (e) { }
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=20261102r">
+    <script>
+        // Hide the plain HTML hero title until the particle title is ready (prevents a flash of the big source text).
+        // Failsafe: if particles never become ready within 8s, show the plain title again.
+        (function () {
+            var root = document.documentElement;
+            root.classList.add('js');
+            setTimeout(function () {
+                if (!root.classList.contains('particles-ready')) root.classList.remove('js');
+            }, 8000);
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css?v=20261103a">
 </head>
 
 <body>
@@ -265,7 +276,7 @@
             <p class="credit">Built with Antigravity</p>
         </footer>
     </div>
-    <script src="particles.js?v=20261102o"></script>
+    <script src="particles.js?v=20261103a"></script>
 </body>
 
 </html>

@@ -354,6 +354,7 @@ function init() {
     if (sourceTitle) {
         sourceTitle.style.opacity = '0';
     }
+    document.documentElement.classList.add('particles-ready');
 }
 
 function updateVirtualMice(dt) {
