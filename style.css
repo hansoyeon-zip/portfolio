@@ -254,7 +254,7 @@ body {
 .project-tag::after {
     content: "\FF1E";
     content: "\FF1E" / "";
-    font-size: 11px;
+    font-size: 9px;
     line-height: 1;
 }
 
