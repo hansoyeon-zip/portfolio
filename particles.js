@@ -269,12 +269,20 @@ function init() {
         lineHeightMultiplier = 0.95;
     }
 
+    const lines = ["Creative", "eXperience", "Design", "Director"];
+    const fontFace = `"Inter", "Helvetica Neue Black", "Helvetica Neue", "Arial Black", sans-serif`;
+
+    // Shrink the font if the widest line would overflow the header (different fonts have different widths)
+    octx.font = `900 ${Math.floor(fontSize)}px ${fontFace}`;
+    let widest = 0;
+    lines.forEach(line => { widest = Math.max(widest, octx.measureText(line).width); });
+    const maxTextWidth = clientWidth - startX - 16;
+    if (widest > maxTextWidth) fontSize = fontSize * (maxTextWidth / widest);
+
     const lineHeight = fontSize * lineHeightMultiplier;
-    octx.font = `900 ${Math.floor(fontSize)}px "Helvetica Neue Black", "Helvetica Neue", "Arial Black", sans-serif`;
+    octx.font = `900 ${Math.floor(fontSize)}px ${fontFace}`;
     octx.textAlign = align;
     octx.textBaseline = 'top';
-
-    const lines = ["Creative", "eXperience", "Design", "Director"];
 
     lines.forEach((line, index) => {
         octx.fillText(line, startX, startY + (index * lineHeight));
@@ -428,8 +436,13 @@ function animate(timestamp) {
 }
 
 window.onload = function () {
-    document.fonts.ready.then(function () {
-        init();
-        animate();
-    });
+    // Wait for the hero font (Inter) so text is sampled with the right glyphs; never block more than 2.5s.
+    const fontLoad = document.fonts.load('900 144px "Inter"').catch(function () { });
+    const timeout = new Promise(function (resolve) { setTimeout(resolve, 2500); });
+    Promise.race([fontLoad, timeout])
+        .then(function () { return document.fonts.ready; })
+        .then(function () {
+            init();
+            animate();
+        });
 }
