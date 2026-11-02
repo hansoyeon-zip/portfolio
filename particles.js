@@ -242,6 +242,7 @@ class Particle {
 }
 
 function init() {
+    spriteCache = []; // rebuild sprites in case devicePixelRatio changed (e.g. moved to another monitor)
     particlesArray = [];
     ambientParticlesArray = [];
 
@@ -403,20 +404,29 @@ function updateVirtualMice(dt) {
     return virtualMice;
 }
 
-// Round particles drawn from one pre-rendered circle sprite. drawImage of the same small image is
-// batched by the browser, so this is round like arc() but far cheaper than thousands of arc paths.
-const SPRITE_SIZE = 16;
-const circleSprite = (function () {
-    const c = document.createElement('canvas');
-    c.width = SPRITE_SIZE;
-    c.height = SPRITE_SIZE;
-    const sc = c.getContext('2d');
-    sc.fillStyle = '#fff';
-    sc.beginPath();
-    sc.arc(SPRITE_SIZE / 2, SPRITE_SIZE / 2, SPRITE_SIZE / 2, 0, Math.PI * 2);
-    sc.fill();
-    return c;
-})();
+// Round particles: one pre-rendered, anti-aliased circle per size bucket (0.25px steps), drawn 1:1.
+// Scaling a single big sprite down to ~3px smears it into a square-ish blob, so each size gets a
+// sprite rendered at its exact device-pixel size. drawImage of small images is batched => fast.
+let spriteCache = [];
+function getSprite(size) {
+    const key = Math.max(1, Math.round(size * 4));
+    let sp = spriteCache[key];
+    if (!sp) {
+        const d = window.devicePixelRatio || 1;
+        const r = key / 4;
+        const px = Math.ceil(r * 2 * d) + 2; // +2px padding for the anti-aliased edge
+        const c = document.createElement('canvas');
+        c.width = px;
+        c.height = px;
+        const sc = c.getContext('2d');
+        sc.fillStyle = '#fff';
+        sc.beginPath();
+        sc.arc(px / 2, px / 2, r * d, 0, Math.PI * 2);
+        sc.fill();
+        sp = spriteCache[key] = { img: c, size: px / d }; // size in CSS px (== px device px on screen)
+    }
+    return sp;
+}
 
 function animate(timestamp) {
     // Delta time normalised to 60fps (1.0 = 16.67ms). Keeps motion speed the same on slow/fast machines.
@@ -457,8 +467,8 @@ function animate(timestamp) {
         for (let i = 0; i < ambientParticlesArray.length; i++) {
             const p = ambientParticlesArray[i];
             if (p.level !== k) continue;
-            const s = p.size;
-            ctx.drawImage(circleSprite, p.x - s, p.y - s, s * 2, s * 2);
+            const sp = getSprite(p.size);
+            ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
         }
     }
     ctx.globalAlpha = 1;
@@ -468,8 +478,8 @@ function animate(timestamp) {
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
         p.update(activeRepulsors, dt, frictionDt);
-        const s = p.size;
-        ctx.drawImage(circleSprite, p.x - s, p.y - s, s * 2, s * 2);
+        const sp = getSprite(p.size);
+        ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
     }
 
     requestAnimationFrame(animate);
