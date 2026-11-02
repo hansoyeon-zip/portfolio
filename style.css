@@ -236,8 +236,10 @@ body {
 }
 
 .project-tag {
-    display: inline-block;
-    padding: 9px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px 9px 20px;
     border: 1px solid #b0b0b0;
     border-radius: 999px;
     color: #dcdcdc;
@@ -246,6 +248,14 @@ body {
     line-height: 1.4;
     text-decoration: none;
     transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+/* Small decorative arrow on the right of each tag */
+.project-tag::after {
+    content: "\FF1E";
+    content: "\FF1E" / "";
+    font-size: 11px;
+    line-height: 1;
 }
 
 .project-tag:hover,
