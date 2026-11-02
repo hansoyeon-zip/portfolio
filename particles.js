@@ -59,6 +59,12 @@ window.addEventListener('touchend', function () {
     mouse.y = null;
 });
 
+// Frame-rate independent timing (1.0 == one frame at 60fps)
+let viewW = 0;
+let viewH = 0;
+let lastFrameTime = null;
+const MAX_DT = 4; // clamp so tab-switch / long stalls don't cause huge jumps
+
 // Ambient Particle (Background Dust)
 class AmbientParticle {
     constructor() {
@@ -76,35 +82,32 @@ class AmbientParticle {
         this.speedY = (Math.random() * 0.5) - 0.25;
         this.color = `rgba(255, 255, 255, ${alpha})`;
     }
-    update(repulsors) {
-        this.x += this.speedX;
-        this.y += this.speedY;
+    update(repulsors, dt) {
+        this.x += this.speedX * dt;
+        this.y += this.speedY * dt;
 
-        const dpr = window.devicePixelRatio || 1;
-        const width = canvas.width / dpr;
-        const height = canvas.height / dpr;
-
-        if (this.x > width) this.x = 0;
-        else if (this.x < 0) this.x = width;
-        if (this.y > height) this.y = 0;
-        else if (this.y < 0) this.y = height;
+        if (this.x > viewW) this.x = 0;
+        else if (this.x < 0) this.x = viewW;
+        if (this.y > viewH) this.y = 0;
+        else if (this.y < 0) this.y = viewH;
 
         // Loop through all active repulsors (Mouse or Virtual Mice)
-        repulsors.forEach(r => {
-            if (r.x != null) {
-                let dx = r.x - this.x;
-                let dy = r.y - this.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < r.radius * 1.5) {
-                    const angle = Math.atan2(dy, dx);
-                    const force = (r.radius * 1.5 - distance) / (r.radius * 1.5);
-                    const pushX = Math.cos(angle) * force * 2;
-                    const pushY = Math.sin(angle) * force * 2;
-                    this.x -= pushX;
-                    this.y -= pushY;
-                }
+        for (let i = 0; i < repulsors.length; i++) {
+            const r = repulsors[i];
+            if (r.x == null) continue;
+            const dx = r.x - this.x;
+            const dy = r.y - this.y;
+            const range = r.radius * 1.5;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < range * range) {
+                const distance = Math.sqrt(distSq);
+                const cos = distance > 0 ? dx / distance : 1;
+                const sin = distance > 0 ? dy / distance : 0;
+                const force = (range - distance) / range;
+                this.x -= cos * force * 2 * dt;
+                this.y -= sin * force * 2 * dt;
             }
-        });
+        }
     }
     draw() {
         ctx.fillStyle = this.color;
@@ -137,63 +140,42 @@ class Particle {
         // 70% Explode, 30% Implode for chaotic mix
         this.polarity = Math.random() < 0.3 ? -1 : 1;
     }
-    draw(repulsors) {
-        let alpha = this.baseAlpha;
+    // dt: frame multiplier (1 = 60fps frame), frictionDt: friction ^ dt (precomputed once per frame)
+    update(repulsors, dt, frictionDt) {
+        for (let i = 0; i < repulsors.length; i++) {
+            const r = repulsors[i];
+            if (r.x == null) continue;
+            const dx = r.x - this.x;
+            const dy = r.y - this.y;
+            const distSq = dx * dx + dy * dy;
 
-        let close = false;
-        repulsors.forEach(r => {
-            if (r.x != null) {
-                let dx = r.x - this.x;
-                let dy = r.y - this.y;
-                if (Math.sqrt(dx * dx + dy * dy) < r.radius) close = true;
+            if (distSq < r.radius * r.radius) {
+                const distance = Math.sqrt(distSq);
+
+                // Standard EXPLOSION (Center -> Out)
+                // Force is stronger at CENTER (distance close to 0)
+                const force = (r.radius - distance) / r.radius;
+
+                // dx/dy point TO the mouse; SUBTRACT velocity to move AWAY (explode)
+                const cos = distance > 0 ? dx / distance : 1;
+                const sin = distance > 0 ? dy / distance : 0;
+
+                // High multiplier for strong shatter
+                const impulse = force * this.density * 20 * dt;
+                this.vx -= cos * impulse;
+                this.vy -= sin * impulse;
             }
-        });
+        }
 
-        if (close) alpha = 1.0;
+        const homeDx = this.targetX - this.x;
+        const homeDy = this.targetY - this.y;
+        this.vx += homeDx * this.ease * 0.1 * dt;
+        this.vy += homeDy * this.ease * 0.1 * dt;
 
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.fill();
-    }
-    update(repulsors) {
-        repulsors.forEach(r => {
-            if (r.x != null) {
-                let dx = r.x - this.x;
-                let dy = r.y - this.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < r.radius) {
-                    const angle = Math.atan2(dy, dx);
-
-                    // REVERTED to Standard EXPLOSION (Center -> Out)
-                    // Force is stronger at CENTER (distance close to 0)
-                    const force = (r.radius - distance) / r.radius;
-
-                    // Direction:
-                    // dx = r.x - this.x (Vector pointing TO mouse)
-                    // To move AWAY from mouse (Explode), we SUBTRACT velocity.
-
-                    const directionX = Math.cos(angle) * force * this.density;
-                    const directionY = Math.sin(angle) * force * this.density;
-
-                    // High multiplier for strong shatter
-                    this.vx -= directionX * 20;
-                    this.vy -= directionY * 20;
-                }
-            }
-        });
-
-        let homeDx = this.targetX - this.x;
-        let homeDy = this.targetY - this.y;
-        this.vx += homeDx * this.ease * 0.1;
-        this.vy += homeDy * this.ease * 0.1;
-
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vx *= this.friction;
-        this.vy *= this.friction;
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.vx *= frictionDt;
+        this.vy *= frictionDt;
     }
 }
 
@@ -216,6 +198,8 @@ function init() {
     canvas.style.width = `${clientWidth}px`;
     canvas.style.height = `${clientHeight}px`;
     ctx.scale(dpr, dpr);
+    viewW = clientWidth;
+    viewH = clientHeight;
 
     for (let i = 0; i < 500; i++) {
         ambientParticlesArray.push(new AmbientParticle());
@@ -268,7 +252,7 @@ function init() {
     }
 }
 
-function updateVirtualMice() {
+function updateVirtualMice(dt) {
     // Only runs when Idle
     const dpr = window.devicePixelRatio || 1;
     const width = canvas.width / dpr;
@@ -298,7 +282,7 @@ function updateVirtualMice() {
         // Pick new random target
         // Text Zone is roughly Top-Left (0,0 to 0.6w, 0.6h)
         // We want to avoid it 80% of the time, picking "Safe Zones" instead.
-        if (!vm.targetX || Math.random() < 0.01) {
+        if (!vm.targetX || Math.random() < 1 - Math.pow(0.99, dt)) {
             const avoidText = Math.random() > 0.2; // 80% chance to avoid text
 
             if (avoidText) {
@@ -320,10 +304,9 @@ function updateVirtualMice() {
         }
 
         // Move
-        let dx = vm.targetX - vm.x;
-        let dy = vm.targetY - vm.y;
-        vm.x += dx * vm.speed;
-        vm.y += dy * vm.speed;
+        const follow = 1 - Math.pow(1 - vm.speed, dt);
+        vm.x += (vm.targetX - vm.x) * follow;
+        vm.y += (vm.targetY - vm.y) * follow;
 
         // vm.radius is already set in object
     });
@@ -331,12 +314,15 @@ function updateVirtualMice() {
     return virtualMice;
 }
 
-function animate() {
-    const dpr = window.devicePixelRatio || 1;
-    const width = canvas.width / dpr;
-    const height = canvas.height / dpr;
+function animate(timestamp) {
+    // Delta time normalised to 60fps (1.0 = 16.67ms). Keeps motion speed the same on slow/fast machines.
+    if (timestamp === undefined) timestamp = performance.now();
+    let dt = lastFrameTime === null ? 1 : (timestamp - lastFrameTime) / (1000 / 60);
+    lastFrameTime = timestamp;
+    if (dt > MAX_DT) dt = MAX_DT;
+    if (dt < 0.1) dt = 0.1;
 
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, viewW, viewH);
 
     // Determine Logic State
     // Idle if NO interaction for 1.5s (REGARDLESS of mouse position)
@@ -347,23 +333,32 @@ function animate() {
 
     if (isIdle) {
         // Use Virtual Mice
-        activeRepulsors = updateVirtualMice();
+        activeRepulsors = updateVirtualMice(dt);
     } else {
         // Use Real Mouse
-        virtualMice.forEach(vm => vm.isActive = false); // Reset virtuals
+        for (let i = 0; i < virtualMice.length; i++) virtualMice[i].isActive = false; // Reset virtuals
         if (mouse.x != null) {
             activeRepulsors = [mouse];
         }
     }
 
     for (let i = 0; i < ambientParticlesArray.length; i++) {
-        ambientParticlesArray[i].draw();
-        ambientParticlesArray[i].update(activeRepulsors);
+        const p = ambientParticlesArray[i];
+        p.update(activeRepulsors, dt);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
     }
 
+    // Text particles: single fillStyle + fillRect (far cheaper than per-particle arc paths)
+    const frictionDt = Math.pow(0.92, dt);
+    ctx.fillStyle = '#fff';
     for (let i = 0; i < particlesArray.length; i++) {
-        particlesArray[i].draw(activeRepulsors);
-        particlesArray[i].update(activeRepulsors);
+        const p = particlesArray[i];
+        p.update(activeRepulsors, dt, frictionDt);
+        const s = p.size * 0.886; // half-side of a square with the same area as a circle of radius p.size
+        ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
     }
 
     requestAnimationFrame(animate);
