@@ -100,6 +100,26 @@ function monitorPerformance(rawMs) {
     }
 }
 
+// Hero title font:
+//  - Helvetica Neue installed (typically Mac/iOS): "Helvetica Neue", Helvetica, "Pretendard", Arial, sans-serif
+//  - Not installed (typically Windows/Android): Pretendard first
+// We detect "Helvetica Neue" itself because Windows silently maps plain "Helvetica" to Arial,
+// which would otherwise stop Pretendard from being used there.
+function isFontInstalled(name) {
+    const c = document.createElement('canvas').getContext('2d');
+    const text = 'mmmmmmmmmmlli WwQ0123456789';
+    return ['monospace', 'serif', 'sans-serif'].some(function (base) {
+        c.font = `72px ${base}`;
+        const baseWidth = c.measureText(text).width;
+        c.font = `72px "${name}", ${base}`;
+        return c.measureText(text).width !== baseWidth;
+    });
+}
+const HAS_HELVETICA = isFontInstalled('Helvetica Neue');
+const HERO_FONT_FACE = HAS_HELVETICA
+    ? `"Helvetica Neue", Helvetica, "Pretendard", Arial, sans-serif`
+    : `"Pretendard", Arial, sans-serif`;
+
 // Ambient Particle (Background Dust)
 class AmbientParticle {
     constructor() {
@@ -270,7 +290,7 @@ function init() {
     }
 
     const lines = ["Creative", "eXperience", "Design", "Director"];
-    const fontFace = `"Inter", "Helvetica Neue Black", "Helvetica Neue", "Arial Black", sans-serif`;
+    const fontFace = HERO_FONT_FACE;
 
     // Shrink the font if the widest line would overflow the header (different fonts have different widths)
     octx.font = `900 ${Math.floor(fontSize)}px ${fontFace}`;
@@ -436,8 +456,10 @@ function animate(timestamp) {
 }
 
 window.onload = function () {
-    // Wait for the hero font (Inter) so text is sampled with the right glyphs; never block more than 2.5s.
-    const fontLoad = document.fonts.load('900 144px "Inter"').catch(function () { });
+    // Wait for Pretendard when it will be used so text is sampled with the right glyphs; never block more than 2.5s.
+    const fontLoad = HAS_HELVETICA
+        ? Promise.resolve()
+        : document.fonts.load('900 144px "Pretendard"').catch(function () { });
     const timeout = new Promise(function (resolve) { setTimeout(resolve, 2500); });
     Promise.race([fontLoad, timeout])
         .then(function () { return document.fonts.ready; })
