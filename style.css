@@ -237,8 +237,8 @@ body {
 
 .project-tag {
     display: inline-block;
-    padding: 5px 14px;
-    border: 1px solid #444;
+    padding: 9px 14px;
+    border: 1px solid #b0b0b0;
     border-radius: 999px;
     color: #bbb;
     font-size: 13px;
@@ -254,23 +254,6 @@ body {
     background-color: #fff;
     border-color: #fff;
     outline: none;
-}
-
-/* Text-style tag link: yellow, no underline; hover keeps the color and only adds an underline */
-.project-tag-text {
-    display: inline-block;
-    color: #ffdc00;
-    font-size: 15px;
-    font-weight: 400;
-    line-height: 1.4;
-    text-decoration: none;
-}
-
-.project-tag-text:hover,
-.project-tag-text:focus-visible {
-    color: #ffdc00;
-    text-decoration: underline;
-    text-underline-offset: 3px;
 }
 
 .email-link {
