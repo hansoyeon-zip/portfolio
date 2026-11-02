@@ -17,8 +17,8 @@
 
 @font-face {
     font-family: 'Interop';
-    src: url('fonts/Interop-Medium.woff2') format('woff2');
-    font-weight: 500;
+    src: url('fonts/Interop-SemiBold.woff2') format('woff2');
+    font-weight: 600;
     font-style: normal;
     font-display: swap;
 }
@@ -158,7 +158,7 @@ body {
     /* Reduced from 18px */
     font-weight: 700;
     margin-bottom: 40px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
     color: var(--accent-color);
     text-transform: uppercase;
     border-top: 1px solid #333;
@@ -179,7 +179,7 @@ body {
 }
 
 .job-item .role {
-    font-weight: 500;
+    font-weight: 600;
     margin-right: 10px;
 }
 
@@ -199,7 +199,7 @@ body {
     justify-content: flex-start;
     align-items: baseline;
     align-items: baseline;
-    font-size: 16px;
+    font-size: 20px;
     /* Reduced from 18px */
     border-bottom: 1px solid #222;
     padding-bottom: 20px;
@@ -228,13 +228,13 @@ body {
 
 .history-item .detail strong {
     color: #fff;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 /* Awards & Projects List */
 .text-list {
     list-style: none;
-    font-size: 16px;
+    font-size: 20px;
     /* Reduced from 18px */
     font-weight: 300;
     text-align: left;
@@ -262,7 +262,7 @@ body {
     display: block;
     font-size: 20px;
     /* Reduced from 22px */
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 8px;
     color: #fff;
 }
