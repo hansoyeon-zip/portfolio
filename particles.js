@@ -264,6 +264,20 @@ function init() {
     viewW = clientWidth;
     viewH = clientHeight;
 
+    // Low-DPR screens: render all particles into one pixel buffer (see drawPixelBuffer)
+    bufDpr = dpr;
+    usePixelBuffer = dpr < 2;
+    stampCache = [];
+    if (usePixelBuffer) {
+        bufW = canvas.width;
+        bufH = canvas.height;
+        imgData = ctx.createImageData(bufW, bufH);
+        buf32 = new Uint32Array(imgData.data.buffer);
+    } else {
+        imgData = null;
+        buf32 = null;
+    }
+
     for (let i = 0; i < 500; i++) {
         ambientParticlesArray.push(new AmbientParticle());
     }
@@ -428,6 +442,93 @@ function getSprite(size) {
     return sp;
 }
 
+// ---- Pixel-buffer renderer (low-DPR screens) ----
+// Tens of thousands of per-particle draw calls are the bottleneck on Windows Chrome. Instead, every
+// particle is stamped (as an anti-aliased round mask) into one RGBA buffer that is pushed to the
+// canvas with a single putImageData per frame. Round look, constant number of draw calls.
+let usePixelBuffer = false;
+let imgData = null;
+let buf32 = null;
+let bufW = 0;
+let bufH = 0;
+let bufDpr = 1;
+let stampCache = [];
+
+function getStamp(size) {
+    const key = Math.max(1, Math.round(size * 4)); // 0.25px size buckets
+    let st = stampCache[key];
+    if (!st) {
+        const r = (key / 4) * bufDpr; // radius in device px
+        const px = Math.ceil(r * 2) + 2;
+        const mask = new Uint8Array(px * px);
+        const c = px / 2;
+        for (let j = 0; j < px; j++) {
+            for (let i = 0; i < px; i++) {
+                const dx = i + 0.5 - c;
+                const dy = j + 0.5 - c;
+                let cov = r + 0.5 - Math.sqrt(dx * dx + dy * dy); // 1px anti-aliased edge
+                cov = cov < 0 ? 0 : (cov > 1 ? 1 : cov);
+                mask[j * px + i] = Math.round(cov * 255);
+            }
+        }
+        st = stampCache[key] = { px: px, mask: mask };
+    }
+    return st;
+}
+
+function stampParticle(x, y, st, alphaScale) {
+    const px = st.px;
+    const left = Math.round(x * bufDpr - px / 2);
+    const top = Math.round(y * bufDpr - px / 2);
+    const i0 = left < 0 ? -left : 0;
+    const i1 = left + px > bufW ? bufW - left : px;
+    const j0 = top < 0 ? -top : 0;
+    const j1 = top + px > bufH ? bufH - top : px;
+    if (i0 >= i1 || j0 >= j1) return;
+    const mask = st.mask;
+    for (let j = j0; j < j1; j++) {
+        let k = (top + j) * bufW + left + i0;
+        let m = j * px + i0;
+        for (let i = i0; i < i1; i++, k++, m++) {
+            const a = alphaScale === 1 ? mask[m] : (mask[m] * alphaScale) | 0;
+            if (a > (buf32[k] >>> 24)) buf32[k] = (a << 24) | 0xFFFFFF; // white, alpha = a (union of overlapping dots)
+        }
+    }
+}
+
+function drawPixelBuffer() {
+    buf32.fill(0);
+    for (let i = 0; i < ambientParticlesArray.length; i++) {
+        const p = ambientParticlesArray[i];
+        stampParticle(p.x, p.y, getStamp(p.size), 0.1 + p.level * 0.12);
+    }
+    for (let i = 0; i < particlesArray.length; i++) {
+        const p = particlesArray[i];
+        stampParticle(p.x, p.y, getStamp(p.size), 1);
+    }
+    ctx.putImageData(imgData, 0, 0);
+}
+
+// Sprite renderer (high-DPR screens such as retina Mac)
+function drawSprites() {
+    for (let k = 0; k < AMBIENT_LEVELS; k++) {
+        ctx.globalAlpha = 0.1 + k * 0.12;
+        for (let i = 0; i < ambientParticlesArray.length; i++) {
+            const p = ambientParticlesArray[i];
+            if (p.level !== k) continue;
+            const sp = getSprite(p.size);
+            ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
+        }
+    }
+    ctx.globalAlpha = 1;
+
+    for (let i = 0; i < particlesArray.length; i++) {
+        const p = particlesArray[i];
+        const sp = getSprite(p.size);
+        ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
+    }
+}
+
 function animate(timestamp) {
     // Delta time normalised to 60fps (1.0 = 16.67ms). Keeps motion speed the same on slow/fast machines.
     if (timestamp === undefined) timestamp = performance.now();
@@ -458,29 +559,17 @@ function animate(timestamp) {
         }
     }
 
-    // Ambient dust: update, then draw batched by opacity level (few state changes, no color-string parsing)
+    // Update all particles, then render with the renderer suited to this screen
     for (let i = 0; i < ambientParticlesArray.length; i++) {
         ambientParticlesArray[i].update(activeRepulsors, dt);
     }
-    for (let k = 0; k < AMBIENT_LEVELS; k++) {
-        ctx.globalAlpha = 0.1 + k * 0.12;
-        for (let i = 0; i < ambientParticlesArray.length; i++) {
-            const p = ambientParticlesArray[i];
-            if (p.level !== k) continue;
-            const sp = getSprite(p.size);
-            ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
-        }
-    }
-    ctx.globalAlpha = 1;
-
-    // Text particles: round sprite per particle
     const frictionDt = Math.pow(0.92, dt);
     for (let i = 0; i < particlesArray.length; i++) {
-        const p = particlesArray[i];
-        p.update(activeRepulsors, dt, frictionDt);
-        const sp = getSprite(p.size);
-        ctx.drawImage(sp.img, p.x - sp.size / 2, p.y - sp.size / 2, sp.size, sp.size);
+        particlesArray[i].update(activeRepulsors, dt, frictionDt);
     }
+
+    if (usePixelBuffer) drawPixelBuffer();
+    else drawSprites();
 
     requestAnimationFrame(animate);
 }
